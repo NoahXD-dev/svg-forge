@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Forge — Editor Online</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0c0c0e;
+            --panel: #131316;
+            --panel2: #1a1a1f;
+            --border: #2a2a35;
+            --accent: #e8ff4e;
+            --accent2: #4ef5ff;
+            --accent3: #ff6b6b;
+            --text: #e8e8f0;
+            --muted: #5a5a70;
+            --canvas-bg: #16161c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 52px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: var(--muted);
+        }
+
+        /* ── MAIN LAYOUT ── */
+        .app-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            width: 60px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .tool-sep {
+            width: 32px;
+            height: 1px;
+            background: var(--border);
+            margin: 6px 0;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 18px;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            background: var(--panel2);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .tool-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .tool-btn.active svg {
+            stroke: #000 !important;
+        }
+
+        .tool-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .tool-tooltip {
+            position: absolute;
+            left: calc(100% + 10px);
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+            z-index: 100;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .tool-btn:hover .tool-tooltip {
+            opacity: 1;
+        }
+
+        /* ── PANELS ── */
+        .left-panel,
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            border-left: 1px solid var(--border);
+        }
+
+        .panel-header {
+            height: 38px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .panel-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .panel-dot.blue {
+            background: var(--accent2);
+        }
+
+        /* ── CANVAS AREA ── */
+        .canvas-wrap {
+            flex: 1;
+            background: var(--canvas-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .canvas-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        #drawCanvas {
+            background: #1e1e26;
+            border: 1px solid var(--border);
+            cursor: crosshair;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+            display: block;
+        }
+
+        /* ── OPTIONS BAR ── */
+        .options-bar {
+            height: 44px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            gap: 16px;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        .opt-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .opt-label {
+            font-size: 10px;
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .color-swatch input[type="color"] {
+            position: absolute;
+            inset: -4px;
+            width: calc(100% + 8px);
+            height: calc(100% + 8px);
+            opacity: 0;
+            cursor: pointer;
+            border: none;
+        }
+
+        .swatch-preview {
+            position: absolute;
+            inset: 0;
+            border-radius: 2px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 70px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .range-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text);
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .opt-sep {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+        }
+
+        .opt-btn {
+            height: 26px;
+            padding: 0 10px;
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .opt-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .opt-btn.danger:hover {
+            border-color: var(--accent3);
+            color: var(--accent3);
+        }
+
+        /* ── PREVIEW PANEL ── */
+        .preview-wrap {
+            flex: 1;
+            background: var(--canvas-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        #previewContainer {
+            background: #1e1e26;
+            border: 1px solid var(--border);
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #previewContainer svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── CODE PANEL ── */
+        .code-panel {
+            height: 200px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .code-header {
+            height: 38px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .code-header .panel-label {
+            flex: 1;
+        }
+
+        .copy-btn {
+            height: 26px;
+            padding: 0 12px;
+            background: var(--accent);
+            border: none;
+            border-radius: 4px;
+            color: #000;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-btn:hover {
+            background: #fff;
+            transform: scale(1.03);
+        }
+
+        .copy-btn.copied {
+            background: #4eff8a;
+        }
+
+        .copy-btn svg {
+            width: 12px;
+            height: 12px;
+            stroke: #000;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .download-btn {
+            height: 26px;
+            padding: 0 12px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .download-btn:hover {
+            border-color: var(--accent2);
+            color: var(--accent2);
+        }
+
+        .download-btn svg {
+            width: 12px;
+            height: 12px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #codeOutput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            color: var(--accent2);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            padding: 12px 16px;
+            overflow-y: auto;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        /* ── STROKE STYLE BUTTONS ── */
+        .stroke-style-btn {
+            height: 26px;
+            padding: 0 8px;
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+        }
+
+        .stroke-style-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── CHECKERED (transparent indicator) ── */
+        .transparent-swatch {
+            background:
+                linear-gradient(45deg, #888 25%, transparent 25%),
+                linear-gradient(-45deg, #888 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #888 75%),
+                linear-gradient(-45deg, transparent 75%, #888 75%);
+            background-size: 8px 8px;
+            background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+            background-color: #fff;
+        }
+
+        /* ── TOOLTIP on canvas size ── */
+        .canvas-size-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            z-index: 2;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <div class="logo-icon"></div>
+            SVG<span>Forge</span>
+        </div>
+        <div class="header-actions">
+            <span class="badge">v1.0</span>
+            <span class="badge" id="elementCount">0 elementos</span>
+        </div>
+    </header>
+
+    <!-- BODY -->
+    <div class="app-body">
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <button class="tool-btn active" data-tool="pen" title="Pluma">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                    <path d="M2 2l7.586 7.586" />
+                    <circle cx="11" cy="11" r="2" />
+                </svg>
+                <span class="tool-tooltip">Pluma libre [P]</span>
+            </button>
+            <button class="tool-btn" data-tool="line" title="Línea">
+                <svg viewBox="0 0 24 24">
+                    <line x1="5" y1="19" x2="19" y2="5" />
+                </svg>
+                <span class="tool-tooltip">Línea [L]</span>
+            </button>
+            <button class="tool-btn" data-tool="rect" title="Rectángulo">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                </svg>
+                <span class="tool-tooltip">Rectángulo [R]</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Círculo">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                </svg>
+                <span class="tool-tooltip">Círculo [C]</span>
+            </button>
+            <button class="tool-btn" data-tool="ellipse" title="Elipse">
+                <svg viewBox="0 0 24 24">
+                    <ellipse cx="12" cy="12" rx="10" ry="6" />
+                </svg>
+                <span class="tool-tooltip">Elipse [E]</span>
+            </button>
+            <button class="tool-btn" data-tool="arrow" title="Flecha">
+                <svg viewBox="0 0 24 24">
+                    <line x1="5" y1="19" x2="19" y2="5" />
+                    <polyline points="11 5 19 5 19 13" />
+                </svg>
+                <span class="tool-tooltip">Flecha [A]</span>
+            </button>
+            <button class="tool-btn" data-tool="text" title="Texto">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="4 7 4 4 20 4 20 7" />
+                    <line x1="9" y1="20" x2="15" y2="20" />
+                    <line x1="12" y1="4" x2="12" y2="20" />
+                </svg>
+                <span class="tool-tooltip">Texto [T]</span>
+            </button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn" data-tool="select" title="Seleccionar">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 3l14 9-7 1-3 7z" />
+                </svg>
+                <span class="tool-tooltip">Seleccionar [S]</span>
+            </button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn" id="undoBtn" title="Deshacer">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.87" />
+                </svg>
+                <span class="tool-tooltip">Deshacer [Ctrl+Z]</span>
+            </button>
+            <button class="tool-btn danger" id="clearBtn" title="Limpiar">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                </svg>
+                <span class="tool-tooltip">Limpiar todo</span>
+            </button>
+        </div>
+
+        <!-- LEFT: DRAW -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <div class="panel-dot"></div>
+                <span class="panel-label">Canvas — Dibuja aquí</span>
+            </div>
+            <div class="canvas-wrap" id="canvasWrap">
+                <div class="canvas-size-info" id="canvasSizeInfo">500 × 400</div>
+                <canvas id="drawCanvas" width="500" height="400"></canvas>
+            </div>
+            <!-- OPTIONS BAR -->
+            <div class="options-bar">
+                <div class="opt-group">
+                    <span class="opt-label">Trazo</span>
+                    <div class="color-swatch" id="strokeSwatchWrap" title="Color de trazo">
+                        <div class="swatch-preview" id="strokePreview" style="background:#e8ff4e"></div>
+                        <input type="color" id="strokeColor" value="#e8ff4e">
+                    </div>
+                </div>
+                <div class="opt-sep"></div>
+                <div class="opt-group">
+                    <span class="opt-label">Relleno</span>
+                    <div class="color-swatch transparent-swatch" id="fillSwatchWrap" title="Color de relleno"
+                        style="position:relative">
+                        <div class="swatch-preview" id="fillPreview" style="background:transparent;opacity:0"></div>
+                        <input type="color" id="fillColor" value="#4ef5ff">
+                    </div>
+                    <button class="stroke-style-btn active" id="fillNoneBtn" title="Sin relleno">∅</button>
+                    <button class="stroke-style-btn" id="fillOnBtn" title="Con relleno">■</button>
+                </div>
+                <div class="opt-sep"></div>
+                <div class="opt-group">
+                    <span class="opt-label">Grosor</span>
+                    <input type="range" id="strokeWidth" min="1" max="20" value="2">
+                    <span class="range-val" id="strokeWidthVal">2</span>
+                </div>
+                <div class="opt-sep"></div>
+                <div class="opt-group">
+                    <span class="opt-label">Opacidad</span>
+                    <input type="range" id="opacityRange" min="10" max="100" value="100">
+                    <span class="range-val" id="opacityVal">100%</span>
+                </div>
+                <div class="opt-sep"></div>
+                <div class="opt-group">
+                    <span class="opt-label">Dash</span>
+                    <button class="stroke-style-btn active" data-dash="" title="Sólido">—</button>
+                    <button class="stroke-style-btn" data-dash="6,4" title="Guiones">- -</button>
+                    <button class="stroke-style-btn" data-dash="2,4" title="Puntos">···</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: PREVIEW + CODE -->
+        <div class="right-panel">
+            <div class="panel-header">
+                <div class="panel-dot blue"></div>
+                <span class="panel-label">Preview SVG</span>
+            </div>
+            <div class="preview-wrap">
+                <div id="previewContainer" style="width:500px;height:400px;"></div>
+            </div>
+            <div class="code-panel">
+                <div class="code-header">
+                    <div class="panel-dot" style="background:var(--muted)"></div>
+                    <span class="panel-label">Código SVG</span>
+                    <button class="download-btn" id="downloadBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        .svg
+                    </button>
+                    <button class="copy-btn" id="copyBtn">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        Copiar código
+                    </button>
+                </div>
+                <textarea id="codeOutput" readonly spellcheck="false"
+                    placeholder="El código SVG aparecerá aquí mientras dibujas..."></textarea>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const preview = document.getElementById('previewContainer');
+        const codeOutput = document.getElementById('codeOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const elementCountEl = document.getElementById('elementCount');
+
+        // State
+        let tool = 'pen';
+        let isDrawing = false;
+        let startX, startY;
+        let currentPath = [];
+        let elements = [];
+        let undoStack = [];
+        let dashStyle = '';
+        let useFill = false;
+        let textInput = null;
+
+        // Style getters
+        const getStroke = () => document.getElementById('strokeColor').value;
+        const getFill = () => useFill ? document.getElementById('fillColor').value : 'none';
+        const getWidth = () => parseInt(document.getElementById('strokeWidth').value);
+        const getOpacity = () => parseInt(document.getElementById('opacityRange').value) / 100;
+
+        // Tool buttons
+        document.querySelectorAll('[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                tool = btn.dataset.tool;
+                document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+                if (tool === 'text') canvas.style.cursor = 'text';
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            const map = { p: 'pen', l: 'line', r: 'rect', c: 'circle', e: 'ellipse', a: 'arrow', t: 'text', s: 'select' };
+            if (map[e.key]) {
+                document.querySelector(`[data-tool="${map[e.key]}"]`)?.click();
+            }
+            if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+        });
+
+        // Stroke width
+        document.getElementById('strokeWidth').addEventListener('input', function () {
+            document.getElementById('strokeWidthVal').textContent = this.value;
+        });
+
+        // Opacity
+        document.getElementById('opacityRange').addEventListener('input', function () {
+            document.getElementById('opacityVal').textContent = this.value + '%';
+        });
+
+        // Stroke color
+        document.getElementById('strokeColor').addEventListener('input', function () {
+            document.getElementById('strokePreview').style.background = this.value;
+        });
+
+        // Fill color
+        document.getElementById('fillColor').addEventListener('input', function () {
+            if (useFill) document.getElementById('fillPreview').style.background = this.value;
+        });
+
+        // Fill toggle
+        document.getElementById('fillNoneBtn').addEventListener('click', function () {
+            useFill = false;
+            this.classList.add('active');
+            document.getElementById('fillOnBtn').classList.remove('active');
+            document.getElementById('fillPreview').style.background = 'transparent';
+            document.getElementById('fillPreview').style.opacity = '0';
+        });
+
+        document.getElementById('fillOnBtn').addEventListener('click', function () {
+            useFill = true;
+            this.classList.add('active');
+            document.getElementById('fillNoneBtn').classList.remove('active');
+            document.getElementById('fillPreview').style.background = document.getElementById('fillColor').value;
+            document.getElementById('fillPreview').style.opacity = '1';
+        });
+
+        // Dash style
+        document.querySelectorAll('[data-dash]').forEach(btn => {
+            btn.addEventListener('click', function () {
+                dashStyle = this.dataset.dash;
+                document.querySelectorAll('[data-dash]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Undo
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        function undo() {
+            if (elements.length > 0) {
+                undoStack.push(elements.pop());
+                redrawCanvas();
+                updatePreview();
+            }
+        }
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (elements.length === 0) return;
+            undoStack = [...elements];
+            elements = [];
+            redrawCanvas();
+            updatePreview();
+        });
+
+        // ── CANVAS EVENTS ──
+        canvas.addEventListener('mousedown', onDown);
+        canvas.addEventListener('mousemove', onMove);
+        canvas.addEventListener('mouseup', onUp);
+        canvas.addEventListener('mouseleave', onUp);
+
+        function getPos(e) {
+            const r = canvas.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+        }
+
+        function currentStyle() {
+            return {
+                stroke: getStroke(),
+                fill: getFill(),
+                width: getWidth(),
+                opacity: getOpacity(),
+                dash: dashStyle
+            };
+        }
+
+        function onDown(e) {
+            const { x, y } = getPos(e);
+            startX = x; startY = y;
+
+            // Text tool
+            if (tool === 'text') {
+                promptText(x, y);
+                return;
+            }
+
+            isDrawing = true;
+            if (tool === 'pen') {
+                currentPath = [{ x, y }];
+            }
+        }
+
+        function onMove(e) {
+            if (!isDrawing) return;
+            const { x, y } = getPos(e);
+
+            redrawCanvas();
+            drawPreviewShape(x, y);
+        }
+
+        function onUp(e) {
+            if (!isDrawing) return;
+            isDrawing = false;
+            const { x, y } = getPos(e);
+            const style = currentStyle();
+
+            if (tool === 'pen') {
+                if (currentPath.length > 1) {
+                    elements.push({ type: 'pen', path: [...currentPath], style });
+                }
+                currentPath = [];
+            } else if (tool === 'line') {
+                elements.push({ type: 'line', x1: startX, y1: startY, x2: x, y2: y, style });
+            } else if (tool === 'rect') {
+                const rx = Math.min(startX, x), ry = Math.min(startY, y);
+                elements.push({ type: 'rect', x: rx, y: ry, w: Math.abs(x - startX), h: Math.abs(y - startY), style });
+            } else if (tool === 'circle') {
+                const r = Math.hypot(x - startX, y - startY);
+                elements.push({ type: 'circle', cx: startX, cy: startY, r, style });
+            } else if (tool === 'ellipse') {
+                const rx = Math.abs(x - startX) / 2, ry2 = Math.abs(y - startY) / 2;
+                const cx = (startX + x) / 2, cy = (startY + y) / 2;
+                elements.push({ type: 'ellipse', cx, cy, rx, ry: ry2, style });
+            } else if (tool === 'arrow') {
+                elements.push({ type: 'arrow', x1: startX, y1: startY, x2: x, y2: y, style });
+            }
+
+            redrawCanvas();
+            updatePreview();
+            updateCount();
+        }
+
+        function drawPreviewShape(x, y) {
+            const style = currentStyle();
+            applyCtxStyle(style);
+
+            if (tool === 'pen') {
+                currentPath.push({ x, y });
+                ctx.beginPath();
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                currentPath.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.stroke();
+            } else if (tool === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if (tool === 'rect') {
+                const rx = Math.min(startX, x), ry = Math.min(startY, y);
+                ctx.beginPath();
+                ctx.rect(rx, ry, Math.abs(x - startX), Math.abs(y - startY));
+                if (style.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (tool === 'circle') {
+                const r = Math.hypot(x - startX, y - startY);
+                ctx.beginPath();
+                ctx.arc(startX, startY, r, 0, Math.PI * 2);
+                if (style.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (tool === 'ellipse') {
+                const rx = Math.abs(x - startX) / 2, ry2 = Math.abs(y - startY) / 2;
+                const cx = (startX + x) / 2, cy = (startY + y) / 2;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, Math.max(rx, 1), Math.max(ry2, 1), 0, 0, Math.PI * 2);
+                if (style.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (tool === 'arrow') {
+                drawArrowCtx(startX, startY, x, y, style);
+            }
+        }
+
+        function applyCtxStyle(style) {
+            ctx.strokeStyle = style.stroke;
+            ctx.fillStyle = style.fill === 'none' ? 'transparent' : style.fill;
+            ctx.lineWidth = style.width;
+            ctx.globalAlpha = style.opacity;
+            ctx.setLineDash(style.dash ? style.dash.split(',').map(Number) : []);
+        }
+
+        function drawArrowCtx(x1, y1, x2, y2, style) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLen = Math.max(10, style.width * 3);
+            applyCtxStyle(style);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fillStyle = style.stroke;
+            ctx.fill();
+        }
+
+        function drawElement(el) {
+            const s = el.style;
+            applyCtxStyle(s);
+
+            if (el.type === 'pen') {
+                ctx.beginPath();
+                ctx.moveTo(el.path[0].x, el.path[0].y);
+                el.path.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.stroke();
+            } else if (el.type === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(el.x1, el.y1);
+                ctx.lineTo(el.x2, el.y2);
+                ctx.stroke();
+            } else if (el.type === 'rect') {
+                ctx.beginPath();
+                ctx.rect(el.x, el.y, el.w, el.h);
+                if (s.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (el.type === 'circle') {
+                ctx.beginPath();
+                ctx.arc(el.cx, el.cy, el.r, 0, Math.PI * 2);
+                if (s.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (el.type === 'ellipse') {
+                ctx.beginPath();
+                ctx.ellipse(el.cx, el.cy, Math.max(el.rx, 1), Math.max(el.ry, 1), 0, 0, Math.PI * 2);
+                if (s.fill !== 'none') ctx.fill();
+                ctx.stroke();
+            } else if (el.type === 'arrow') {
+                drawArrowCtx(el.x1, el.y1, el.x2, el.y2, s);
+            } else if (el.type === 'text') {
+                ctx.globalAlpha = s.opacity;
+                ctx.fillStyle = s.stroke;
+                ctx.font = `${s.width * 6 + 10}px Syne, sans-serif`;
+                ctx.fillText(el.text, el.x, el.y);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            elements.forEach(drawElement);
+        }
+
+        // ── TEXT TOOL ──
+        function promptText(x, y) {
+            const style = currentStyle();
+            const size = style.width * 6 + 10;
+
+            // Overlay input
+            const wrap = canvas.parentElement;
+            const rect = canvas.getBoundingClientRect();
+            const wrapRect = wrap.getBoundingClientRect();
+
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.placeholder = 'Escribe aquí...';
+            inp.style.cssText = `
+    position:absolute;
+    left:${rect.left - wrapRect.left + x}px;
+    top:${rect.top - wrapRect.top + y - size}px;
+    font-size:${size}px;
+    font-family:'Syne',sans-serif;
+    color:${style.stroke};
+    background:rgba(0,0,0,0.6);
+    border:1px dashed ${style.stroke};
+    outline:none;
+    padding:2px 6px;
+    border-radius:3px;
+    z-index:999;
+    min-width:120px;
+  `;
+            wrap.appendChild(inp);
+            inp.focus();
+
+            function commit() {
+                const val = inp.value.trim();
+                if (val) {
+                    elements.push({ type: 'text', text: val, x, y, style });
+                    redrawCanvas();
+                    updatePreview();
+                    updateCount();
+                }
+                inp.remove();
+            }
+
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') commit();
+                if (e.key === 'Escape') inp.remove();
+                e.stopPropagation();
+            });
+            inp.addEventListener('blur', commit);
+        }
+
+        // ── SVG GENERATION ──
+        function generateSVG() {
+            const w = canvas.width, h = canvas.height;
+            let parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`];
+
+            elements.forEach(el => {
+                const s = el.style;
+                const dashAttr = s.dash ? ` stroke-dasharray="${s.dash}"` : '';
+                const common = `stroke="${s.stroke}" stroke-width="${s.width}" fill="${s.fill}" opacity="${s.opacity}"${dashAttr}`;
+
+                if (el.type === 'pen') {
+                    const d = 'M ' + el.path.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' L ');
+                    parts.push(`  <path d="${d}" ${common} fill="none"/>`);
+                } else if (el.type === 'line') {
+                    parts.push(`  <line x1="${Math.round(el.x1)}" y1="${Math.round(el.y1)}" x2="${Math.round(el.x2)}" y2="${Math.round(el.y2)}" ${common}/>`);
+                } else if (el.type === 'rect') {
+                    parts.push(`  <rect x="${Math.round(el.x)}" y="${Math.round(el.y)}" width="${Math.round(el.w)}" height="${Math.round(el.h)}" ${common}/>`);
+                } else if (el.type === 'circle') {
+                    parts.push(`  <circle cx="${Math.round(el.cx)}" cy="${Math.round(el.cy)}" r="${Math.round(el.r)}" ${common}/>`);
+                } else if (el.type === 'ellipse') {
+                    parts.push(`  <ellipse cx="${Math.round(el.cx)}" cy="${Math.round(el.cy)}" rx="${Math.round(el.rx)}" ry="${Math.round(el.ry)}" ${common}/>`);
+                } else if (el.type === 'arrow') {
+                    const angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
+                    const hl = Math.max(10, s.width * 3);
+                    const ax1 = Math.round(el.x2 - hl * Math.cos(angle - Math.PI / 6));
+                    const ay1 = Math.round(el.y2 - hl * Math.sin(angle - Math.PI / 6));
+                    const ax2 = Math.round(el.x2 - hl * Math.cos(angle + Math.PI / 6));
+                    const ay2 = Math.round(el.y2 - hl * Math.sin(angle + Math.PI / 6));
+                    const markId = `arrow-${Math.random().toString(36).slice(2, 6)}`;
+                    parts.push(`  <line x1="${Math.round(el.x1)}" y1="${Math.round(el.y1)}" x2="${Math.round(el.x2)}" y2="${Math.round(el.y2)}" ${common}/>`);
+                    parts.push(`  <polygon points="${Math.round(el.x2)},${Math.round(el.y2)} ${ax1},${ay1} ${ax2},${ay2}" fill="${s.stroke}" opacity="${s.opacity}"/>`);
+                } else if (el.type === 'text') {
+                    const fontSize = s.width * 6 + 10;
+                    parts.push(`  <text x="${Math.round(el.x)}" y="${Math.round(el.y)}" font-size="${fontSize}" fill="${s.stroke}" opacity="${s.opacity}" font-family="sans-serif">${escapeXml(el.text)}</text>`);
+                }
+            });
+
+            parts.push('</svg>');
+            return parts.join('\n');
+        }
+
+        function escapeXml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function updatePreview() {
+            const svg = generateSVG();
+            preview.innerHTML = svg;
+            codeOutput.value = svg;
+        }
+
+        function updateCount() {
+            elementCountEl.textContent = `${elements.length} elemento${elements.length !== 1 ? 's' : ''}`;
+        }
+
+        // ── COPY ──
+        copyBtn.addEventListener('click', async () => {
+            const code = codeOutput.value;
+            if (!code) return;
+            try {
+                await navigator.clipboard.writeText(code);
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg> ¡Copiado!`;
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar código`;
+                }, 2000);
+            } catch {
+                codeOutput.select();
+                document.execCommand('copy');
+            }
+        });
+
+        // ── DOWNLOAD ──
+        downloadBtn.addEventListener('click', () => {
+            const svg = generateSVG();
+            if (!svg || elements.length === 0) return;
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'svgforge-drawing.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Init
+        updatePreview();
+    </script>
+</body>
+
+</html>
