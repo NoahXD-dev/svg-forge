@@ -51,10 +51,14 @@ cd svg-forge
 ```
 svg-forge/
 ├── index.html
-└── assets/
-    └── logo.svg
+├── assets/
+|   └── logo.svg
+├── css/
+|   └── app.css
+└── js/
+    └── main.js
 ```
 
 ## 📄 Licencia
 
-MIT © [NoahXD-dev](https://github.com/NoahXD-dev)
+MIT © [NoahXD-dev](https://github.com/NoahXD-dev/svg-forge/blob/master/LICENSE)
